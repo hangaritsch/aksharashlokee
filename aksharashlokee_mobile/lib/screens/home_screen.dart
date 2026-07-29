@@ -366,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       color: const Color(0xFFFFF9E3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
-                        side: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
+                        side: BorderSide(color: const Color(0xFFD35400).withOpacity(0.3)),
                       ),
                     ),
                   ),

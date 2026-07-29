@@ -54,7 +54,7 @@ class _TraditionalLogoPainter extends CustomPainter {
     for (int i = 0; i < 8; i++) {
       final angle = (i * 45) * math.pi / 180;
       canvas.save();
-      canvas.translate(center.dx, center.bottom); // Translate to center
+      canvas.translate(center.dx, center.dy); // Translate to center
       canvas.translate(0, -radius * 0.1); // Shift up slightly
       
       // We'll draw petals from the center outwards

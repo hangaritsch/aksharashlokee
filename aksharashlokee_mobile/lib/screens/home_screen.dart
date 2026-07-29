@@ -360,63 +360,78 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   size: 20,
                 ),
                 const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedAkshara,
-                      menuMaxHeight: 350,
-                      hint: Text(
-                        'अ',
-                        style: GoogleFonts.tiroDevanagariSanskrit(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF800000),
-                        ),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    popupMenuTheme: PopupMenuThemeData(
+                      color: const Color(0xFFFFF9E3),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
                       ),
-                      dropdownColor: const Color(0xFFFFF9E3),
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFD35400)),
-                      isDense: true,
-                      alignment: Alignment.centerLeft,
-                      items: [
-                        DropdownMenuItem(
+                    ),
+                  ),
+                  child: PopupMenuButton<String?>(
+                    constraints: const BoxConstraints(
+                      minWidth: 75,
+                      maxWidth: 120,
+                      maxHeight: 350,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onSelected: (value) {
+                      if (value == null) {
+                        _resetToInitialState();
+                      } else {
+                        _loadShlokas(value);
+                      }
+                    },
+                    itemBuilder: (BuildContext context) {
+                      return [
+                        PopupMenuItem<String?>(
                           value: null,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(
-                              'अक्षराणि',
-                              style: GoogleFonts.mukta(fontWeight: FontWeight.w600, color: const Color(0xFF800000)),
-                            ),
+                          height: 36,
+                          child: Text(
+                            'अक्षराणि',
+                            style: GoogleFonts.mukta(fontWeight: FontWeight.w600, color: const Color(0xFF800000), fontSize: 15),
                           ),
                         ),
                         ..._aksharas.map((akshara) {
-                          return DropdownMenuItem(
+                          return PopupMenuItem<String?>(
                             value: akshara,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4),
-                              child: Text(
-                                akshara,
-                                style: GoogleFonts.tiroDevanagariSanskrit(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF2D1410),
-                                ),
+                            height: 36,
+                            child: Text(
+                              akshara,
+                              style: GoogleFonts.tiroDevanagariSanskrit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF2D1410),
                               ),
                             ),
                           );
                         }),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) {
-                          _resetToInitialState();
-                        } else {
-                          _loadShlokas(value);
-                        }
-                      },
+                      ];
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _selectedAkshara ?? 'अ',
+                            style: GoogleFonts.tiroDevanagariSanskrit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF800000),
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          const Icon(Icons.arrow_drop_down, color: Color(0xFFD35400), size: 20),
+                        ],
+                      ),
                     ),
                   ),
                 ),

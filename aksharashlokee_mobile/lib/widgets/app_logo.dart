@@ -14,15 +14,11 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Image.asset(
+      'assets/logo.png',
       width: size,
       height: size,
-      child: CustomPaint(
-        painter: _TraditionalLogoPainter(
-          lotusColor: const Color(0xFFD35400), // Saffron
-          letterColor: const Color(0xFF800000), // Maroon
-        ),
-      ),
+      fit: BoxFit.contain,
     );
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import '../models/shloka.dart';
 import '../services/local_shloka_service.dart';
+import '../widgets/app_logo.dart';
 import 'about_screen.dart';
 import 'privacy_policy_screen.dart';
 
@@ -151,13 +153,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              const Color(0xFFF9FAFB),
-              const Color(0xFFE8F4FD),
+              Color(0xFFFFF9E3), // Light Parchment
+              Color(0xFFFFF0B2), // Soft Ochre
             ],
           ),
         ),
@@ -203,33 +205,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      child: Column(
         children: [
-          Image.asset(
-            'assets/logo.png',
-            width: 40,
-            height: 40,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(width: 8),
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [
-                const Color(0xFF007AFF),
-                const Color(0xFF5856D6),
-              ],
-            ).createShader(bounds),
-            child: Text(
-              'अक्षरश्लोकी',
-              style: TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: -0.5,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const AppLogo(size: 60),
+              const SizedBox(width: 16),
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [
+                    Color(0xFF800000), // Maroon
+                    Color(0xFFD35400), // Saffron
+                  ],
+                ).createShader(bounds),
+                child: Text(
+                  'अक्षरश्लोकी',
+                  style: GoogleFonts.tiroDevanagariSanskrit(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
-              textAlign: TextAlign.center,
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            height: 2,
+            width: 180,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  const Color(0xFFD35400).withOpacity(0.5),
+                  Colors.transparent,
+                ],
+              ),
             ),
           ),
         ],
@@ -294,16 +308,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: const Color(0xFF007AFF).withValues(alpha: 0.2),
+                        color: const Color(0xFFD35400).withOpacity(0.2),
                         width: 1,
                       ),
                     ),
                     child: const Icon(
                       CupertinoIcons.info_circle_fill,
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFF800000),
                       size: 20,
                     ),
                   ),
@@ -323,16 +337,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: const Color(0xFF007AFF).withValues(alpha: 0.2),
+                        color: const Color(0xFFD35400).withOpacity(0.2),
                         width: 1,
                       ),
                     ),
                     child: const Icon(
                       Icons.privacy_tip_outlined,
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFF800000),
                       size: 20,
                     ),
                   ),
@@ -340,44 +354,70 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 const SizedBox(width: 12),
 
                 // Akshara Selector
-                Icon(
+                const Icon(
                   CupertinoIcons.circle_grid_3x3_fill,
-                  color: const Color(0xFF007AFF),
+                  color: Color(0xFF800000),
                   size: 20,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
                   ),
-                  child: DropdownButton<String>(
-                    value: _selectedAkshara,
-                    hint: const Text('अक्षराणि'),
-                    underline: const SizedBox(),
-                    isDense: true,
-                    items: [
-                      const DropdownMenuItem(
-                        value: null,
-                        child: Text('अक्षराणि'),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedAkshara,
+                      menuMaxHeight: 350,
+                      hint: Text(
+                        'अ',
+                        style: GoogleFonts.tiroDevanagariSanskrit(
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF800000),
+                        ),
                       ),
-                      ..._aksharas.map((akshara) {
-                        return DropdownMenuItem(
-                          value: akshara,
-                          child: Text(akshara),
-                        );
-                      }),
-                    ],
-                    onChanged: (value) {
-                      if (value == null) {
-                        _resetToInitialState();
-                      } else {
-                        _loadShlokas(value);
-                      }
-                    },
+                      dropdownColor: const Color(0xFFFFF9E3),
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFFD35400)),
+                      isDense: true,
+                      alignment: Alignment.centerLeft,
+                      items: [
+                        DropdownMenuItem(
+                          value: null,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              'अक्षराणि',
+                              style: GoogleFonts.mukta(fontWeight: FontWeight.w600, color: const Color(0xFF800000)),
+                            ),
+                          ),
+                        ),
+                        ..._aksharas.map((akshara) {
+                          return DropdownMenuItem(
+                            value: akshara,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                akshara,
+                                style: GoogleFonts.tiroDevanagariSanskrit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF2D1410),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) {
+                          _resetToInitialState();
+                        } else {
+                          _loadShlokas(value);
+                        }
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -414,11 +454,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: const Color(0xFF007AFF),
+          color: const Color(0xFF800000), // Changed to Maroon
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF007AFF).withValues(alpha: 0.3),
+              color: const Color(0xFF800000).withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -469,7 +509,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           padding: EdgeInsets.only(left: 8, right: 4),
           child: Icon(
             CupertinoIcons.search,
-            color: Color(0xFF007AFF),
+            color: Color(0xFFD35400), // Changed to Saffron
             size: 18,
           ),
         ),
@@ -506,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF007AFF), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF800000), width: 1.5), // Changed to Maroon
         ),
       ),
     );
@@ -519,24 +559,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         opacity: _fadeAnimation,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFFFF3CD),
-                const Color(0xFFFFE69C),
-              ],
-            ),
+            color: const Color(0xFFFFF9E3), // Solid Parchment
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: const Color(0xFFFFC107).withValues(alpha: 0.3),
-              width: 1,
+              color: const Color(0xFFD35400).withOpacity(0.4),
+              width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: const Color(0xFF800000).withOpacity(0.1),
                 blurRadius: 15,
-                offset: const Offset(0, 10),
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -545,32 +578,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               Text(
                 '॥ मङ्गलम् ॥',
-                style: TextStyle(
-                  fontSize: _fontSize + 4,
+                style: GoogleFonts.tiroDevanagariSanskrit(
+                  fontSize: _fontSize + 8,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF800000),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'वागर्थाविव संपृक्तौ वागर्थप्रतिपत्तये।',
+                style: GoogleFonts.tiroDevanagariSanskrit(
+                  fontSize: _fontSize,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1F2937),
+                  color: const Color(0xFF2D1B13),
                   height: 1.8,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'वागर्थाविव संपृक्तौ वागर्थप्रतिपत्तये।',
-                style: TextStyle(
-                  fontSize: _fontSize,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1F2937),
-                  height: 1.8,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
                 'जगतः पितरौ वन्दे पार्वतीपरमेश्वरौ ।।',
-                style: TextStyle(
+                style: GoogleFonts.tiroDevanagariSanskrit(
                   fontSize: _fontSize,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1F2937),
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF2D1B13),
                   height: 1.8,
                 ),
                 textAlign: TextAlign.center,
@@ -681,14 +713,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+              color: const Color(0xFFD35400).withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFD35400).withOpacity(0.2)),
             ),
             child: Row(
               children: [
                 IconButton(
                   icon:
-                      const Icon(CupertinoIcons.back, color: Color(0xFF007AFF)),
+                      const Icon(CupertinoIcons.back, color: Color(0xFF800000)),
                   onPressed: _resetToInitialState,
                 ),
                 Expanded(
@@ -696,10 +729,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     _isSearching
                         ? 'Search Results (${_shlokas.length})'
                         : 'Shlokas for "$_selectedAkshara"',
-                    style: const TextStyle(
+                    style: GoogleFonts.tiroDevanagariSanskrit(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
+                      color: const Color(0xFF800000),
                     ),
                   ),
                 ),
@@ -770,79 +803,95 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 24),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(16),
+          color: const Color(0xFFFFFDF5),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.2),
+            color: const Color(0xFFD35400).withOpacity(0.3),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 6,
-              offset: const Offset(0, 4),
+              color: const Color(0xFF800000).withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Stack(
           children: [
-            // Top gradient bar
+            // Decorative vertical scroll bars
             Positioned(
-              top: 0,
               left: 0,
-              right: 0,
+              top: 0,
+              bottom: 0,
               child: Container(
-                height: 3,
+                width: 6,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF007AFF),
-                      const Color(0xFF5856D6),
-                    ],
-                  ),
+                  color: const Color(0xFFD35400).withOpacity(0.6),
                   borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 6,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD35400).withOpacity(0.6),
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(12),
+                    bottomRight: Radius.circular(12),
                   ),
                 ),
               ),
             ),
 
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Shloka content with line breaks
+                  // Shloka content
                   Text(
                     _formatShlokaContent(shloka.content),
-                    style: TextStyle(
+                    style: GoogleFonts.tiroDevanagariSanskrit(
                       fontSize: _fontSize,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold, // Bolder for clarity
                       height: 1.8,
-                      color: const Color(0xFF1F2937),
+                      color: const Color(0xFF2D1410), // Deep, dark reddish brown
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
-                  // Divider
-                  Container(
-                    height: 1,
-                    color: const Color(0xFFE5E7EB),
+                  // Ornamental divider
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(height: 1.5, width: 50, color: const Color(0xFFD35400).withOpacity(0.4)),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10),
+                        child: Icon(Icons.brightness_high, size: 16, color: Color(0xFF800000)),
+                      ),
+                      Container(height: 1.5, width: 50, color: const Color(0xFFD35400).withOpacity(0.4)),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
                   // Reference
                   Text(
                     '— ${shloka.reference}',
-                    style: const TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      fontWeight: FontWeight.w500,
+                    style: GoogleFonts.mukta(
+                      color: const Color(0xFF800000),
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -935,11 +984,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: const Color(0xFF007AFF),
+                color: const Color(0xFF800000), // Changed to Maroon
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF007AFF).withValues(alpha: 0.3),
+                    color: const Color(0xFF800000).withOpacity(0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),

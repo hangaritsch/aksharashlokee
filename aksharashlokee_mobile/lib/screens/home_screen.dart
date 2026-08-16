@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _showSearchBar = false;
   bool _showInitialShloka = true;
   String _devanagariSearchHint = '';
+  List<String> _wordSuggestions = [];
   double _fontSize = 18.0;
   bool _showFontPanel = false;
   late AnimationController _fadeController;
@@ -86,86 +87,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Future<void> _loadShlokas(String akshara) async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-      _selectedAkshara = akshara;
-      _selectedGrantha = null;
-      _isSearching = false;
-      _searchController.clear();
-      _devanagariSearchHint = '';
-      _showSearchBar = false;
-      _showInitialShloka = false;
-    });
-
-    try {
-      final shlokasList = await LocalShlokaService.getShlokasByAkshara(akshara);
-      setState(() {
-        _shlokas = shlokasList;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadShlokasByGrantha(String grantha) async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-      _selectedGrantha = grantha;
-      _selectedAkshara = null;
-      _isSearching = false;
-      _searchController.clear();
-      _devanagariSearchHint = '';
-      _showSearchBar = false;
-      _showInitialShloka = false;
-    });
-
-    try {
-      final shlokasList = await LocalShlokaService.getShlokasByGrantha(grantha);
-      setState(() {
-        _shlokas = shlokasList;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _searchShlokas(String query) async {
-    if (query.isEmpty) {
-      setState(() {
-        _isSearching = false;
-        _devanagariSearchHint = '';
-      });
-      return;
-    }
-
+  Future<void> _applyCombinedFilters() async {
+    final query = _searchController.text.trim();
     final devanagariText = DevanagariTransliterater.transliterate(query);
 
     setState(() {
       _isLoading = true;
       _error = null;
-      _isSearching = true;
-      _devanagariSearchHint = devanagariText != query ? devanagariText : '';
+      _isSearching = query.isNotEmpty || _selectedAkshara != null || _selectedGrantha != null;
+      _devanagariSearchHint = (query.isNotEmpty && devanagariText != query) ? devanagariText : '';
       _showInitialShloka = false;
     });
 
     try {
-      final shlokasList = await LocalShlokaService.searchShlokas(
-        query,
-        devanagariQuery: devanagariText,
+      // Fetch combined filtered shlokas
+      final shlokasList = await LocalShlokaService.getFilteredShlokas(
+        akshara: _selectedAkshara,
+        grantha: _selectedGrantha,
+        query: query.isNotEmpty ? query : null,
+        devanagariQuery: devanagariText.isNotEmpty ? devanagariText : null,
       );
+
+      // Fetch word suggestions if user is searching in English/Devanagari
+      List<String> suggestions = [];
+      if (query.isNotEmpty) {
+        suggestions = await LocalShlokaService.getSanskritWordSuggestions(
+          devanagariText.isNotEmpty ? devanagariText : query,
+        );
+      }
+
       setState(() {
         _shlokas = shlokasList;
+        _wordSuggestions = suggestions;
         _isLoading = false;
       });
     } catch (e) {
@@ -174,6 +127,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _loadShlokas(String akshara) async {
+    _selectedAkshara = akshara;
+    _applyCombinedFilters();
+  }
+
+  Future<void> _loadShlokasByGrantha(String grantha) async {
+    _selectedGrantha = grantha;
+    _applyCombinedFilters();
+  }
+
+  Future<void> _searchShlokas(String query) async {
+    _applyCombinedFilters();
   }
 
   void _resetToInitialState() {
@@ -186,6 +153,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _showSearchBar = false;
       _searchController.clear();
       _devanagariSearchHint = '';
+      _wordSuggestions = [];
       _showInitialShloka = true;
     });
   }
@@ -406,39 +374,137 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
 
-                // Transliteration live hint chip when searching in English
-                if (_showSearchBar && _devanagariSearchHint.isNotEmpty) ...[
+                // Active Filter Badges (Pills)
+                if (_selectedAkshara != null || _selectedGrantha != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      if (_selectedAkshara != null) ...[
+                        Chip(
+                          avatar: const Icon(CupertinoIcons.circle_grid_3x3_fill, size: 14, color: Colors.white),
+                          label: Text(
+                            'अक्षरम्: $_selectedAkshara',
+                            style: GoogleFonts.tiroDevanagariSanskrit(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          backgroundColor: const Color(0xFF800000),
+                          deleteIcon: const Icon(Icons.cancel, size: 16, color: Colors.white70),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedAkshara = null;
+                            });
+                            _applyCombinedFilters();
+                          },
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      if (_selectedGrantha != null) ...[
+                        Chip(
+                          avatar: const Icon(Icons.book, size: 14, color: Colors.white),
+                          label: Text(
+                            _selectedGrantha!.length > 12
+                                ? '${_selectedGrantha!.substring(0, 12)}...'
+                                : _selectedGrantha!,
+                            style: GoogleFonts.tiroDevanagariSanskrit(fontSize: 13, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          backgroundColor: const Color(0xFFD35400),
+                          deleteIcon: const Icon(Icons.cancel, size: 16, color: Colors.white70),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedGrantha = null;
+                            });
+                            _applyCombinedFilters();
+                          },
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+
+                // Transliteration live hint chip & Interactive Sanskrit Suggestions
+                if (_showSearchBar && (_devanagariSearchHint.isNotEmpty || _wordSuggestions.isNotEmpty)) ...[
                   const SizedBox(height: 8),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFF9E3),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.g_translate, size: 16, color: Color(0xFFD35400)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'अन्वेषणम् (Devanagari): ',
-                          style: GoogleFonts.mukta(
-                            fontSize: 13,
-                            color: const Color(0xFF800000),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            _devanagariSearchHint,
-                            style: GoogleFonts.tiroDevanagariSanskrit(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF2D1410),
+                        if (_devanagariSearchHint.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.g_translate, size: 16, color: Color(0xFFD35400)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'देवनागरी (Devanagari): ',
+                                  style: GoogleFonts.mukta(
+                                    fontSize: 13,
+                                    color: const Color(0xFF800000),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    _devanagariSearchHint,
+                                    style: GoogleFonts.tiroDevanagariSanskrit(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF2D1410),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
+
+                        // Tappable Sanskrit Auto-Suggestion Chips
+                        if (_wordSuggestions.isNotEmpty) ...[
+                          Text(
+                            'सूचिताः शब्दाः (Suggested Words):',
+                            style: GoogleFonts.mukta(
+                              fontSize: 12,
+                              color: const Color(0xFF800000),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: _wordSuggestions.map((word) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: ActionChip(
+                                    backgroundColor: Colors.white,
+                                    side: BorderSide(color: const Color(0xFFD35400).withOpacity(0.4)),
+                                    label: Text(
+                                      word,
+                                      style: GoogleFonts.tiroDevanagariSanskrit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF800000),
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      _searchController.text = word;
+                                      _applyCombinedFilters();
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

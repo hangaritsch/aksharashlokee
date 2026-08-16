@@ -36,4 +36,18 @@ class Shloka {
       'updated_at': updatedAt,
     };
   }
+
+  /// Extracts the main work/grantha name without chapter or verse numbers
+  String get mainGrantha {
+    if (reference.trim().isEmpty) return 'सामान्यम्';
+    final ref = reference.trim();
+    // Split by comma or slash to isolate main work name
+    final commaIndex = ref.indexOf(',');
+    if (commaIndex != -1) {
+      return ref.substring(0, commaIndex).trim();
+    }
+    // Remove numbers, slashes, and verse indicators
+    return ref.split(RegExp(r'[\d\/,॥\.]')).first.trim();
+  }
 }
+

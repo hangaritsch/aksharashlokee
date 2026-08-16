@@ -41,23 +41,52 @@ class LocalShlokaService {
     return shlokas.where((s) => s.akshara == akshara).toList();
   }
 
-  /// Search shlokas by query (searches in content and reference)
-  static Future<List<Shloka>> searchShlokas(String query) async {
+  /// Get unique main grantha names from all shlokas
+  static Future<List<String>> getGranthas() async {
+    final shlokas = await getAllShlokas();
+    final granthas = shlokas
+        .map((s) => s.mainGrantha)
+        .where((g) => g.isNotEmpty)
+        .toSet()
+        .toList();
+    granthas.sort();
+    return granthas;
+  }
+
+  /// Get shlokas for a specific grantha
+  static Future<List<Shloka>> getShlokasByGrantha(String grantha) async {
+    final shlokas = await getAllShlokas();
+    return shlokas.where((s) => s.mainGrantha == grantha).toList();
+  }
+
+  /// Search shlokas by query (searches content, reference, akshara, & Devanagari transliteration)
+  static Future<List<Shloka>> searchShlokas(String query, {String? devanagariQuery}) async {
     if (query.isEmpty) {
       return [];
     }
 
     final shlokas = await getAllShlokas();
     final lowerQuery = query.toLowerCase();
+    final lowerDevanagari = devanagariQuery?.toLowerCase() ?? '';
 
     return shlokas.where((s) {
       final content = s.content.toLowerCase();
       final reference = s.reference.toLowerCase();
       final akshara = s.akshara.toLowerCase();
 
-      return content.contains(lowerQuery) ||
+      final matchesDirect = content.contains(lowerQuery) ||
           reference.contains(lowerQuery) ||
           akshara.contains(lowerQuery);
+
+      if (matchesDirect) return true;
+
+      if (lowerDevanagari.isNotEmpty) {
+        return content.contains(lowerDevanagari) ||
+            reference.contains(lowerDevanagari) ||
+            akshara.contains(lowerDevanagari);
+      }
+
+      return false;
     }).toList();
   }
 

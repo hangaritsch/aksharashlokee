@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'dart:ui';
 import '../models/shloka.dart';
 import '../services/local_shloka_service.dart';
+import '../utils/shloka_formatter.dart';
 import '../widgets/app_logo.dart';
 import 'about_screen.dart';
 import 'privacy_policy_screen.dart';
@@ -17,7 +18,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<String> _aksharas = [];
+  List<String> _granthas = [];
   String? _selectedAkshara;
+  String? _selectedGrantha;
   List<Shloka> _shlokas = [];
   bool _isLoading = false;
   String? _error;
@@ -26,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isSearching = false;
   bool _showSearchBar = false;
   bool _showInitialShloka = true;
+  String _devanagariSearchHint = '';
   double _fontSize = 18.0;
   bool _showFontPanel = false;
   late AnimationController _fadeController;
@@ -34,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _loadAksharas();
+    _loadAksharasAndGranthas();
     _loadSavedFontSize();
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -55,13 +59,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _loadSavedFontSize() {
-    // In a real app, load from SharedPreferences
     setState(() {
       _fontSize = 18.0;
     });
   }
 
-  Future<void> _loadAksharas() async {
+  Future<void> _loadAksharasAndGranthas() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -69,8 +72,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     try {
       final aksharas = await LocalShlokaService.getAksharas();
+      final granthas = await LocalShlokaService.getGranthas();
       setState(() {
         _aksharas = aksharas;
+        _granthas = granthas;
         _isLoading = false;
       });
     } catch (e) {
@@ -86,8 +91,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _isLoading = true;
       _error = null;
       _selectedAkshara = akshara;
+      _selectedGrantha = null;
       _isSearching = false;
       _searchController.clear();
+      _devanagariSearchHint = '';
       _showSearchBar = false;
       _showInitialShloka = false;
     });
@@ -106,23 +113,57 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
+  Future<void> _loadShlokasByGrantha(String grantha) async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _selectedGrantha = grantha;
+      _selectedAkshara = null;
+      _isSearching = false;
+      _searchController.clear();
+      _devanagariSearchHint = '';
+      _showSearchBar = false;
+      _showInitialShloka = false;
+    });
+
+    try {
+      final shlokasList = await LocalShlokaService.getShlokasByGrantha(grantha);
+      setState(() {
+        _shlokas = shlokasList;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
   Future<void> _searchShlokas(String query) async {
     if (query.isEmpty) {
       setState(() {
         _isSearching = false;
+        _devanagariSearchHint = '';
       });
       return;
     }
+
+    final devanagariText = DevanagariTransliterater.transliterate(query);
 
     setState(() {
       _isLoading = true;
       _error = null;
       _isSearching = true;
+      _devanagariSearchHint = devanagariText != query ? devanagariText : '';
       _showInitialShloka = false;
     });
 
     try {
-      final shlokasList = await LocalShlokaService.searchShlokas(query);
+      final shlokasList = await LocalShlokaService.searchShlokas(
+        query,
+        devanagariQuery: devanagariText,
+      );
       setState(() {
         _shlokas = shlokasList;
         _isLoading = false;
@@ -139,10 +180,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _searchFocusNode.unfocus();
     setState(() {
       _selectedAkshara = null;
+      _selectedGrantha = null;
       _shlokas = [];
       _isSearching = false;
       _showSearchBar = false;
       _searchController.clear();
+      _devanagariSearchHint = '';
       _showInitialShloka = true;
     });
   }
@@ -258,185 +301,322 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         borderRadius: BorderRadius.circular(16),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOut,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: Colors.white.withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: const Color(0xFFD35400).withOpacity(0.3),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: const Color(0xFF800000).withOpacity(0.12),
                   blurRadius: 15,
-                  offset: const Offset(0, 10),
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      // Search Button
+                Row(
+                  children: [
+                    // Floating Search Button & Animated Expandable Input
+                    if (_showSearchBar) ...[
+                      Expanded(
+                        child: _buildSearchField(),
+                      ),
+                      const SizedBox(width: 8),
                       _buildSearchButton(),
+                    ] else ...[
+                      _buildSearchButton(),
+                      const SizedBox(width: 10),
 
-                      if (_showSearchBar) ...[
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildSearchField(),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // Info Button
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                          builder: (context) => const AboutScreen()),
-                    );
-                  },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0xFFD35400).withOpacity(0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.info_circle_fill,
-                      color: Color(0xFF800000),
-                      size: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) => const PrivacyPolicyScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: const Color(0xFFD35400).withOpacity(0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.privacy_tip_outlined,
-                      color: Color(0xFF800000),
-                      size: 20,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Akshara Selector
-                const Icon(
-                  CupertinoIcons.circle_grid_3x3_fill,
-                  color: Color(0xFF800000),
-                  size: 20,
-                ),
-                const SizedBox(width: 4),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    popupMenuTheme: PopupMenuThemeData(
-                      color: const Color(0xFFFFF9E3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: const Color(0xFFD35400).withOpacity(0.3)),
-                      ),
-                    ),
-                  ),
-                  child: PopupMenuButton<String?>(
-                    constraints: const BoxConstraints(
-                      minWidth: 75,
-                      maxWidth: 120,
-                      maxHeight: 350,
-                    ),
-                    padding: EdgeInsets.zero,
-                    onSelected: (value) {
-                      if (value == null) {
-                        _resetToInitialState();
-                      } else {
-                        _loadShlokas(value);
-                      }
-                    },
-                    itemBuilder: (BuildContext context) {
-                      return [
-                        PopupMenuItem<String?>(
-                          value: null,
-                          height: 36,
-                          child: Text(
-                            'अक्षराणि',
-                            style: GoogleFonts.mukta(fontWeight: FontWeight.w600, color: const Color(0xFF800000), fontSize: 15),
-                          ),
-                        ),
-                        ..._aksharas.map((akshara) {
-                          return PopupMenuItem<String?>(
-                            value: akshara,
-                            height: 36,
-                            child: Text(
-                              akshara,
-                              style: GoogleFonts.tiroDevanagariSanskrit(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF2D1410),
-                              ),
+                      // Info Button
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => const AboutScreen(),
                             ),
                           );
-                        }),
-                      ];
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
+                        },
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFD35400).withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.info_circle_fill,
+                            color: Color(0xFF800000),
+                            size: 20,
+                          ),
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _selectedAkshara ?? 'अ',
+                      const SizedBox(width: 8),
+
+                      // Privacy Button
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => const PrivacyPolicyScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: const Color(0xFFD35400).withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.privacy_tip_outlined,
+                            color: Color(0xFF800000),
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+
+                      // Akshara Selector
+                      _buildAksharaSelector(),
+                      const SizedBox(width: 8),
+
+                      // Grantha Selector
+                      _buildGranthaSelector(),
+                    ],
+                  ],
+                ),
+
+                // Transliteration live hint chip when searching in English
+                if (_showSearchBar && _devanagariSearchHint.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF9E3),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.g_translate, size: 16, color: Color(0xFFD35400)),
+                        const SizedBox(width: 6),
+                        Text(
+                          'अन्वेषणम् (Devanagari): ',
+                          style: GoogleFonts.mukta(
+                            fontSize: 13,
+                            color: const Color(0xFF800000),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            _devanagariSearchHint,
                             style: GoogleFonts.tiroDevanagariSanskrit(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF800000),
+                              color: const Color(0xFF2D1410),
                             ),
                           ),
-                          const SizedBox(width: 2),
-                          const Icon(Icons.arrow_drop_down, color: Color(0xFFD35400), size: 20),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAksharaSelector() {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color: const Color(0xFFFFF9E3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: const Color(0xFFD35400).withOpacity(0.3)),
+          ),
+        ),
+      ),
+      child: PopupMenuButton<String?>(
+        constraints: const BoxConstraints(
+          minWidth: 80,
+          maxWidth: 120,
+          maxHeight: 350,
+        ),
+        padding: EdgeInsets.zero,
+        onSelected: (value) {
+          if (value == null) {
+            _resetToInitialState();
+          } else {
+            _loadShlokas(value);
+          }
+        },
+        itemBuilder: (BuildContext context) {
+          return [
+            PopupMenuItem<String?>(
+              value: null,
+              height: 36,
+              child: Text(
+                'अक्षराणि',
+                style: GoogleFonts.mukta(
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF800000),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            ..._aksharas.map((akshara) {
+              return PopupMenuItem<String?>(
+                value: akshara,
+                height: 36,
+                child: Text(
+                  akshara,
+                  style: GoogleFonts.tiroDevanagariSanskrit(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF2D1410),
+                  ),
+                ),
+              );
+            }),
+          ];
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _selectedAkshara ?? 'अक्षरम्',
+                style: GoogleFonts.tiroDevanagariSanskrit(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF800000),
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.arrow_drop_down, color: Color(0xFFD35400), size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGranthaSelector() {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color: const Color(0xFFFFF9E3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: const Color(0xFFD35400).withOpacity(0.3)),
+          ),
+        ),
+      ),
+      child: PopupMenuButton<String?>(
+        constraints: const BoxConstraints(
+          minWidth: 160,
+          maxWidth: 240,
+          maxHeight: 380,
+        ),
+        padding: EdgeInsets.zero,
+        onSelected: (value) {
+          if (value == null) {
+            _resetToInitialState();
+          } else {
+            _loadShlokasByGrantha(value);
+          }
+        },
+        itemBuilder: (BuildContext context) {
+          return [
+            PopupMenuItem<String?>(
+              value: null,
+              height: 36,
+              child: Text(
+                'सर्वे ग्रन्थाः',
+                style: GoogleFonts.mukta(
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF800000),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            ..._granthas.map((grantha) {
+              return PopupMenuItem<String?>(
+                value: grantha,
+                height: 40,
+                child: Text(
+                  grantha,
+                  style: GoogleFonts.tiroDevanagariSanskrit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2D1410),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            }),
+          ];
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFD35400).withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  _selectedGrantha != null
+                      ? (_selectedGrantha!.length > 8
+                          ? '${_selectedGrantha!.substring(0, 8)}...'
+                          : _selectedGrantha!)
+                      : 'ग्रन्थाः',
+                  style: GoogleFonts.tiroDevanagariSanskrit(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF800000),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 2),
+              const Icon(Icons.arrow_drop_down, color: Color(0xFFD35400), size: 18),
+            ],
           ),
         ),
       ),
@@ -450,6 +630,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _showSearchBar = !_showSearchBar;
           if (_showSearchBar) {
             _selectedAkshara = null;
+            _selectedGrantha = null;
             _shlokas = [];
             _isSearching = false;
             _showInitialShloka = false;
@@ -461,15 +642,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             });
           } else {
             _searchController.clear();
+            _devanagariSearchHint = '';
             _resetToInitialState();
           }
         });
       },
       child: Container(
-        width: 48,
-        height: 48,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
-          color: const Color(0xFF800000), // Changed to Maroon
+          color: const Color(0xFF800000),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -495,6 +677,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       textInputAction: TextInputAction.search,
       autocorrect: false,
       enableSuggestions: false,
+      style: GoogleFonts.tiroDevanagariSanskrit(
+        color: const Color(0xFF2D1410), // High-visibility dark brown
+        fontSize: 17,
+        fontWeight: FontWeight.bold,
+      ),
       onChanged: (value) {
         final query = value.trim();
         if (query.isEmpty) {
@@ -502,6 +689,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             _isSearching = false;
             _shlokas = [];
             _showInitialShloka = false;
+            _devanagariSearchHint = '';
             _error = null;
           });
         } else {
@@ -515,24 +703,31 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
       },
       decoration: InputDecoration(
-        hintText: 'श्लोकं अन्विष्यन्तु',
-        hintStyle: const TextStyle(
-          color: Color(0xFF6B7280),
-          fontSize: 15,
+        hintText: 'श्लोकं / English अन्विष्यन्तु...',
+        hintStyle: GoogleFonts.mukta(
+          color: const Color(0xFF8E8E93),
+          fontSize: 14,
         ),
-        prefixIcon: const Padding(
-          padding: EdgeInsets.only(left: 8, right: 4),
-          child: Icon(
-            CupertinoIcons.search,
-            color: Color(0xFFD35400), // Changed to Saffron
-            size: 18,
-          ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        filled: true,
+        fillColor: const Color(0xFFFFFDF5),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: const Color(0xFFD35400).withOpacity(0.4)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: const Color(0xFFD35400).withOpacity(0.4)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF800000), width: 1.5),
         ),
         suffixIcon: _searchController.text.trim().isNotEmpty
             ? IconButton(
                 icon: const Icon(
                   CupertinoIcons.clear_circled_solid,
-                  color: Color(0xFF6B7280),
+                  color: Color(0xFF800000),
                   size: 18,
                 ),
                 onPressed: () {
@@ -540,29 +735,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   setState(() {
                     _isSearching = false;
                     _shlokas = [];
-                    _showInitialShloka = false;
-                    _error = null;
+                    _devanagariSearchHint = '';
                   });
                 },
               )
             : null,
-        filled: true,
-        fillColor: Colors.white,
-        isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF800000), width: 1.5), // Changed to Maroon
-        ),
       ),
     );
   }
@@ -647,7 +824,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Text('Error: $_error'),
                         const SizedBox(height: 16),
                         CupertinoButton.filled(
-                          onPressed: _loadAksharas,
+                          onPressed: _loadAksharasAndGranthas,
                           child: const Text('Retry'),
                         ),
                       ],
@@ -920,8 +1097,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   String _formatShlokaContent(String content) {
-    // Format shloka with proper line breaks
-    return content
+    // Standardize shloka structure and line breaks automatically
+    final cleaned = ShlokaFormatter.formatContent(content);
+    return cleaned
         .replaceAll('।।', '।।\n')
         .replaceAll(RegExp(r'।(?!।)'), '।\n')
         .trim();
